@@ -1,0 +1,114 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+class GeneticBridge
+{
+    static Random random = new Random();
+
+    static void Main()
+    {
+        int characterHeight = 7; // înălțimea personajului
+        int[] riverDepths = { 2, 5, 7, 3, 6, 8, 4, 5, 3, 9 }; // adâncimea râului la fiecare poziție
+
+        int populationSize = 100;
+        int generations = 500;
+        double mutationRate = 0.1;
+
+        List<int[]> population = GenerateInitialPopulation(populationSize);
+        for (int i = 0; i < generations; i++)
+        {
+            population = EvolvePopulation(population, riverDepths, characterHeight, mutationRate);
+            int[] bestSolution = GetBestSolution(population, riverDepths, characterHeight);
+
+            if (EvaluateFitness(bestSolution, riverDepths, characterHeight) == 0)
+            {
+                Console.WriteLine("Soluția optimă găsită la generația " + i + ":");
+                Console.WriteLine(string.Join(", ", bestSolution));
+                return;
+            }
+        }
+
+        Console.WriteLine("Soluția optimă după toate generațiile:");
+        int[] finalSolution = GetBestSolution(population, riverDepths, characterHeight);
+        Console.WriteLine(string.Join(", ", finalSolution));
+    }
+
+    static List<int[]> GenerateInitialPopulation(int size)
+    {
+        List<int[]> population = new List<int[]>();
+        for (int i = 0; i < size; i++)
+        {
+            int[] individual = Enumerable.Range(1, 10).OrderBy(x => random.Next()).ToArray();
+            population.Add(individual);
+        }
+        return population;
+    }
+
+    static List<int[]> EvolvePopulation(List<int[]> population, int[] riverDepths, int characterHeight, double mutationRate)
+    {
+        List<int[]> newPopulation = new List<int[]>();
+        for (int i = 0; i < population.Count; i++)
+        {
+            int[] parent1 = SelectIndividual(population, riverDepths, characterHeight);
+            int[] parent2 = SelectIndividual(population, riverDepths, characterHeight);
+
+            int[] offspring = Crossover(parent1, parent2);
+            if (random.NextDouble() < mutationRate)
+            {
+                Mutate(offspring);
+            }
+
+            newPopulation.Add(offspring);
+        }
+        return newPopulation;
+    }
+
+    static int[] SelectIndividual(List<int[]> population, int[] riverDepths, int characterHeight)
+    {
+        return population.OrderBy(individual => EvaluateFitness(individual, riverDepths, characterHeight)).First();
+    }
+
+    static int[] Crossover(int[] parent1, int[] parent2)
+    {
+        int crossoverPoint = random.Next(1, parent1.Length - 1);
+        int[] child = new int[parent1.Length];
+        Array.Copy(parent1, child, crossoverPoint);
+        int index = crossoverPoint;
+        foreach (var gene in parent2)
+        {
+            if (!child.Contains(gene))
+            {
+                child[index++] = gene;
+            }
+        }
+        return child;
+    }
+
+    static void Mutate(int[] individual)
+    {
+        int index1 = random.Next(individual.Length);
+        int index2 = random.Next(individual.Length);
+        int temp = individual[index1];
+        individual[index1] = individual[index2];
+        individual[index2] = temp;
+    }
+
+    static int EvaluateFitness(int[] individual, int[] riverDepths, int characterHeight)
+    {
+        int fitness = 0;
+        for (int i = 0; i < individual.Length; i++)
+        {
+            if (characterHeight - individual[i] < riverDepths[i])
+            {
+                fitness += 1; // Penalizare pentru fiecare bloc care se scufundă sub apă
+            }
+        }
+        return fitness;
+    }
+
+    static int[] GetBestSolution(List<int[]> population, int[] riverDepths, int characterHeight)
+    {
+        return population.OrderBy(individual => EvaluateFitness(individual, riverDepths, characterHeight)).First();
+    }
+}
